@@ -46,6 +46,8 @@ import {
   REMOVE_BOND_RETURNED,
   ACTIVATE_BOND,
   ACTIVATE_BOND_RETURNED,
+  WITHDRAW_BOND,
+  WITHDRAW_BOND_RETURNED,
   ADD_JOB,
   ADD_JOB_RETURNED,
   GET_JOB_PROFILE,
@@ -87,10 +89,10 @@ class Store {
       account: {},
       transactions: [],
       gasPrices: {
-        "slow":90,
-        "standard":90,
-        "fast":100,
-        "instant":130
+        "slow": 90,
+        "standard": 90,
+        "fast": 100,
+        "instant": 130
       },
       gasSpeed: 'fast',
       currentBlock: 0,
@@ -145,11 +147,11 @@ class Store {
       keeperAsset: {
         address: config.keeperAddress,
         abi: KeeperABI,
-        symbol: 'KPR',
+        symbol: 'ADARK',
         name: 'Keep3r',
         decimals: 18,
         balance: 0,
-        logo: 'KPR-logo.png',
+        logo: 'DARK-logo.png',
         type: 'keeper',
         bonds: 0,
         pendingBonds: 0,
@@ -163,7 +165,7 @@ class Store {
         work: 0,
         workCompleted: 0,
         isActive: false,
-        voteSymbol: 'KBD',
+        voteSymbol: 'ADARK Bonded',
         currentVotes: 0
       },
       jobs: [
@@ -235,6 +237,9 @@ class Store {
           case ACTIVATE_BOND:
             this.activateBond(payload);
             break;
+          case WITHDRAW_BOND:
+            this.withdrawBond(payload);
+            break;
           case GET_KEEPER_PROFILE:
             this.getKeeperProfile(payload);
             break;
@@ -267,11 +272,11 @@ class Store {
   }
 
   getStore(index) {
-    return(this.store[index]);
+    return (this.store[index]);
   };
 
   setStore(obj) {
-    this.store = {...this.store, ...obj}
+    this.store = { ...this.store, ...obj }
     return emitter.emit('StoreUpdated');
   };
 
@@ -286,7 +291,7 @@ class Store {
 
     let assets = [baseAsset, liquidityAsset, rewardAsset] // ,poolAsset
 
-    if(!account || !account.address || !assets) {
+    if (!account || !account.address || !assets) {
       return false
     }
 
@@ -302,7 +307,7 @@ class Store {
         callback(null, asset)
       })
     }, (err, resultAssets) => {
-      if(err) {
+      if (err) {
         return emitter.emit(ERROR, err)
       }
 
@@ -319,17 +324,17 @@ class Store {
 
   _getBalance = async (web3, asset, account, callback) => {
     try {
-      if(asset.address === 'Ethereum') {
+      if (asset.address === 'Ethereum') {
         const eth_balance = web3.utils.fromWei(await web3.eth.getBalance(account.address), "ether");
         callback(null, parseFloat(eth_balance))
       } else {
         const assetContract = new web3.eth.Contract(asset.abi, asset.address)
 
         let balance = await assetContract.methods.balanceOf(account.address).call({ from: account.address });
-        balance = parseFloat(balance)/10**asset.decimals
+        balance = parseFloat(balance) / 10 ** asset.decimals
         callback(null, parseFloat(balance))
       }
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       return callback(ex)
     }
@@ -347,13 +352,13 @@ class Store {
 
       const liquidityContract = new web3.eth.Contract(LiquidityABI, liquidityAsset.address)
 
-      let amountToSend = (amount*10**baseAsset.decimals).toFixed(0);
+      let amountToSend = (amount * 10 ** baseAsset.decimals).toFixed(0);
 
       const output = await liquidityContract.methods.calculateMint(amountToSend).call({ from: account.address })
-      const receiveAmount = parseFloat(output)/10**liquidityAsset.decimals
+      const receiveAmount = parseFloat(output) / 10 ** liquidityAsset.decimals
 
       return emitter.emit(CALCULATE_MINT_RETURNED, receiveAmount)
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
     }
   }
@@ -364,7 +369,7 @@ class Store {
     const { amount } = payload.content
 
     this._callMint(baseAsset, account, amount, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, MINT);
       }
@@ -375,27 +380,27 @@ class Store {
 
   _callMint = async (asset, account, amount, callback) => {
     const web3 = await this._getWeb3Provider();
-    const amountToSend = (amount*10**asset.decimals).toFixed(0)
+    const amountToSend = (amount * 10 ** asset.decimals).toFixed(0)
 
     const liquidityContract = new web3.eth.Contract(LiquidityABI, config.liquidityAddress)
     const output = await liquidityContract.methods.calculateMint(amountToSend).call({ from: account.address })
 
     liquidityContract.methods.mint(output).send({ value: amountToSend, from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -403,7 +408,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -417,13 +422,13 @@ class Store {
     const { amount } = payload.content
 
     this._checkApproval(liquidityAsset, account, amount, config.rewardsAddress, (err) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err)
         return emitter.emit(ERROR, STAKE)
       }
 
       this._callStake(liquidityAsset, account, amount, (err, res) => {
-        if(err) {
+        if (err) {
           emitter.emit(SNACKBAR_ERROR, err)
           return emitter.emit(ERROR, STAKE)
         }
@@ -435,25 +440,25 @@ class Store {
 
   _callStake = async (asset, account, amount, callback) => {
     const web3 = await this._getWeb3Provider();
-    const amountToSend = (amount*10**asset.decimals).toFixed(0)
+    const amountToSend = (amount * 10 ** asset.decimals).toFixed(0)
 
     const rewardsContract = new web3.eth.Contract(RewardsABI, config.rewardsAddress)
     rewardsContract.methods.stake(amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -461,7 +466,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -476,21 +481,21 @@ class Store {
       const erc20Contract = new web3.eth.Contract(ERC20ABI, asset.address)
       const allowance = await erc20Contract.methods.allowance(account.address, contract).call({ from: account.address })
 
-      const ethAllowance = (allowance*10**asset.decimals).toFixed(0)
+      const ethAllowance = (allowance * 10 ** asset.decimals).toFixed(0)
       let amountToSend = web3.utils.toWei('999999999', "ether");
-      if(asset.decimals !== 18) {
-        amountToSend = (999999999*10**asset.decimals).toFixed(0)
+      if (asset.decimals !== 18) {
+        amountToSend = (999999999 * 10 ** asset.decimals).toFixed(0)
       }
 
-      if(parseFloat(ethAllowance) < parseFloat(amount)) {
+      if (parseFloat(ethAllowance) < parseFloat(amount)) {
         await erc20Contract.methods.approve(contract, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
         callback()
       } else {
         callback()
       }
 
-    } catch(error) {
-      if(error.message) {
+    } catch (error) {
+      if (error.message) {
         return callback(error.message)
       }
       callback(error)
@@ -501,7 +506,7 @@ class Store {
     const gasPrices = await this._getGasPrices()
     let gasSpeed = localStorage.getItem('governance-gas-speed')
 
-    if(!gasSpeed) {
+    if (!gasSpeed) {
       gasSpeed = 'fast'
       localStorage.getItem('governance-gas-speed', 'fast')
     }
@@ -515,10 +520,10 @@ class Store {
       const url = config.gasPriceURL
       const priceString = await rp(url);
       const priceJSON = JSON.parse(priceString)
-      if(priceJSON) {
+      if (priceJSON) {
         return priceJSON
       }
-    } catch(e) {
+    } catch (e) {
       console.log(e)
       return {}
     }
@@ -531,10 +536,10 @@ class Store {
       const url = config.gasPriceURL
       const priceString = await rp(url);
       const priceJSON = JSON.parse(priceString)
-      if(priceJSON) {
+      if (priceJSON) {
         return priceJSON[gasSpeed].toFixed(0)
       }
-    } catch(e) {
+    } catch (e) {
       console.log(e)
       return {}
     }
@@ -542,11 +547,11 @@ class Store {
 
   _getWeb3Provider = async () => {
     const web3context = store.getStore('web3context')
-    if(!web3context) {
+    if (!web3context) {
       return null
     }
     const provider = web3context.library.provider
-    if(!provider) {
+    if (!provider) {
       return null
     }
 
@@ -559,10 +564,10 @@ class Store {
     const { contract, func, params, paramValues } = payload.content
     const account = store.getStore('account')
     const web3 = await this._getWeb3Provider();
-    if(!web3) return
+    if (!web3) return
 
     this._signActionBySig(web3, account, contract, func, params, paramValues, (err, result) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, SIGN_ACTION);
       }
@@ -605,7 +610,7 @@ class Store {
     let message = {}
 
     let i = 0
-    for(i = 0; i < params.length; i++) {
+    for (i = 0; i < params.length; i++) {
       message[params[i].name] = paramValues[i]
     }
 
@@ -630,10 +635,10 @@ class Store {
         params: [signer, data],
         from: signer
       },
-      function(err, result) {
+      function (err, result) {
         if (err || result.error) {
           console.error(err || result.error);
-          if(result && result.error && result.error.message) {
+          if (result && result.error && result.error.message) {
             return callback(result.error.message)
           }
           return callback(err || result.error)
@@ -660,9 +665,9 @@ class Store {
     var v = signature.substring(128, 130);
 
     return {
-        r: "0x" + r,
-        s: "0x" + s,
-        v: parseInt(v, 16)
+      r: "0x" + r,
+      s: "0x" + s,
+      v: parseInt(v, 16)
     }
   }
 
@@ -679,17 +684,17 @@ class Store {
     const signatures = contracts.map((contract) => {
       const theContract = new web3.eth.Contract(contract.abi, contract.address)
 
-      const signature = theContract.methods[contract.func]( ...contract.paramValues )._method.signature;
+      const signature = theContract.methods[contract.func](...contract.paramValues)._method.signature;
       return signature
     })
     const calldatas = contracts.map((contract) => {
       const theContract = new web3.eth.Contract(contract.abi, contract.address)
-      const callData = theContract.methods[contract.func]( ...contract.paramValues ).encodeABI();
+      const callData = theContract.methods[contract.func](...contract.paramValues).encodeABI();
       return callData
     })
 
     this._callPropose(targets, values, signatures, calldatas, description, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, PROPOSE);
       }
@@ -710,21 +715,21 @@ class Store {
 
     const governanceContract = new web3.eth.Contract(GovernanceABI, config.governanceAddress)
     governanceContract.methods.propose(targets, values, signatures, calldatas, description).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 1) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 1) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -732,7 +737,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -744,19 +749,19 @@ class Store {
     const account = store.getStore('account')
     const web3 = await this._getWeb3Provider()
 
-    if(!web3) {
+    if (!web3) {
       emitter.emit(GET_PROPOSALS_RETURNED)
       return
     }
 
     this._getProposalCount(web3, account, (err, proposalCount) => {
-      if(err) {
+      if (err) {
         return emitter.emit(ERROR, err);
       }
 
       let arr = Array.from(Array(parseInt(proposalCount)).keys()).reverse()
 
-      if(proposalCount === 0 || proposalCount === '0') {
+      if (proposalCount === 0 || proposalCount === '0') {
         arr = []
       }
 
@@ -764,7 +769,7 @@ class Store {
         proposal = proposal + 1
         this._getProposals(web3, account, proposal, callback)
       }, (err, proposalsData) => {
-        if(err) {
+        if (err) {
           return emitter.emit(ERROR, err);
         }
 
@@ -779,7 +784,7 @@ class Store {
       const governanceContract = new web3.eth.Contract(GovernanceABI, config.governanceAddress)
       const proposals = await governanceContract.methods.proposalCount().call({ from: account.address });
       callback(null, proposals)
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       return callback(ex)
     }
@@ -799,7 +804,7 @@ class Store {
       proposal.stateDescription = this._getState(state)
 
       callback(null, proposal)
-    } catch(ex) {
+    } catch (ex) {
       return callback(ex)
     }
   }
@@ -830,7 +835,7 @@ class Store {
   getCurrentBlock = async () => {
     const web3 = await this._getWeb3Provider()
 
-    if(!web3) {
+    if (!web3) {
       emitter.emit(CURRENT_BLOCK_RETURNED)
       return
     }
@@ -853,10 +858,10 @@ class Store {
       const rewardsContract = new web3.eth.Contract(RewardsABI, rewardAsset.address)
 
       const output = await rewardsContract.methods.rewards(account.address).call({ from: account.address })
-      const rewardAmount = parseFloat(output)/10**rewardAsset.decimals
+      const rewardAmount = parseFloat(output) / 10 ** rewardAsset.decimals
 
       return emitter.emit(REWARDS_AVAILABLE_RETURNED, rewardAmount)
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       emitter.emit(SNACKBAR_ERROR, ex);
       return emitter.emit(ERROR, GET_REWARDS_AVAILABLE)
@@ -869,7 +874,7 @@ class Store {
     const { amount } = payload.content
 
     this._callGetReward(baseAsset, account, amount, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, GET_REWARD);
       }
@@ -884,21 +889,21 @@ class Store {
     const rewardsContract = new web3.eth.Contract(RewardsABI, config.rewardsAddress)
 
     rewardsContract.methods.getReward().send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -906,7 +911,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -919,7 +924,7 @@ class Store {
     const { proposal } = payload.content
 
     this._callVoteFor(proposal, account, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, GET_REWARD);
       }
@@ -934,21 +939,21 @@ class Store {
     const governanceContract = new web3.eth.Contract(GovernanceABI, config.governanceAddress)
 
     governanceContract.methods.castVote(proposal.id, true).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -956,7 +961,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -969,7 +974,7 @@ class Store {
     const { proposal } = payload.content
 
     this._callVoteAgainst(proposal, account, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, GET_REWARD);
       }
@@ -984,21 +989,21 @@ class Store {
     const governanceContract = new web3.eth.Contract(GovernanceABI, config.governanceAddress)
 
     governanceContract.methods.castVote(proposal.id, false).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1006,7 +1011,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1019,7 +1024,7 @@ class Store {
     const account = store.getStore('account')
     let keeperAsset = store.getStore('keeperAsset')
     const web3 = await this._getWeb3Provider()
-    if(!web3) {
+    if (!web3) {
       emitter.emit(KEEPER_RETURNED)
       return
     }
@@ -1032,7 +1037,7 @@ class Store {
 
       emitter.emit(KEEPER_RETURNED)
 
-    } catch(ex) {
+    } catch (ex) {
       emitter.emit(SNACKBAR_ERROR, ex)
       return emitter.emit(ERROR, GET_KEEPER)
     }
@@ -1043,40 +1048,44 @@ class Store {
     try {
       const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
-      let balance = await keeperContract.methods.balanceOf(address).call({ })
-      balance = balance/10**keeperAsset.decimals
+      let balance = await keeperContract.methods.balanceOf(address).call({})
+      balance = balance / 10 ** keeperAsset.decimals
       keeperAsset.balance = balance
 
-      let bonds = await keeperContract.methods.bonds(address, keeperAsset.address).call({ })
-      bonds = bonds/10**keeperAsset.decimals
+      let bonds = await keeperContract.methods.bonds(address, keeperAsset.address).call({})
+      bonds = bonds / 10 ** keeperAsset.decimals
       keeperAsset.bonds = bonds
 
-      let pendingBonds = await keeperContract.methods.pendingbonds(address, keeperAsset.address).call({ })
-      pendingBonds = pendingBonds/10**keeperAsset.decimals
+      let pendingBonds = await keeperContract.methods.pendingbonds(address, keeperAsset.address).call({})
+      pendingBonds = pendingBonds / 10 ** keeperAsset.decimals
       keeperAsset.pendingBonds = pendingBonds
 
-      keeperAsset.bondings = await keeperContract.methods.bondings(address, keeperAsset.address).call({ })
-      keeperAsset.unbondings = await keeperContract.methods.unbondings(address, keeperAsset.address).call({ })
+      let partialUnbonding = await keeperContract.methods.partialUnbonding(address, keeperAsset.address).call({ })
+      partialUnbonding = partialUnbonding/10**keeperAsset.decimals
+      keeperAsset.partialUnbonding = partialUnbonding
 
-      keeperAsset.blacklisted = await keeperContract.methods.blacklist(address).call({ })
-      keeperAsset.disputed = await keeperContract.methods.disputes(address).call({ })
-      keeperAsset.firstSeen = await keeperContract.methods.firstSeen(address).call({ })
-      keeperAsset.delegates = await keeperContract.methods.delegates(address).call({ })
+      keeperAsset.bondings = await keeperContract.methods.bondings(address, keeperAsset.address).call({})
+      keeperAsset.unbondings = await keeperContract.methods.unbondings(address, keeperAsset.address).call({})
 
-      keeperAsset.workCompleted = await keeperContract.methods.workCompleted(address).call({ })
-      keeperAsset.workCompleted = keeperAsset.workCompleted/10**keeperAsset.decimals
+      keeperAsset.blacklisted = await keeperContract.methods.blacklist(address).call({})
+      keeperAsset.disputed = await keeperContract.methods.disputes(address).call({})
+      keeperAsset.firstSeen = await keeperContract.methods.firstSeen(address).call({})
+      keeperAsset.delegates = await keeperContract.methods.delegates(address).call({})
 
-      keeperAsset.lastJob = await keeperContract.methods.lastJob(address).call({ })
+      keeperAsset.workCompleted = await keeperContract.methods.workCompleted(address).call({})
+      keeperAsset.workCompleted = keeperAsset.workCompleted / 10 ** keeperAsset.decimals
 
-      keeperAsset.isActive = await keeperContract.methods.keepers(address).call({ })
+      keeperAsset.lastJob = await keeperContract.methods.lastJob(address).call({})
 
-      let currentVotes = await keeperContract.methods.getCurrentVotes(address).call({ })
-      currentVotes = currentVotes/10**keeperAsset.decimals
+      keeperAsset.isActive = await keeperContract.methods.keepers(address).call({})
+
+      let currentVotes = await keeperContract.methods.getCurrentVotes(address).call({})
+      currentVotes = currentVotes / 10 ** keeperAsset.decimals
       keeperAsset.currentVotes = currentVotes
 
       console.log(keeperAsset)
       return keeperAsset
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       return {}
     }
@@ -1087,7 +1096,7 @@ class Store {
     const web3 = await this._getWeb3Provider()
     const keeperAsset = store.getStore('keeperAsset')
 
-    if(!web3) {
+    if (!web3) {
       emitter.emit(JOBS_RETURNED)
       return
     }
@@ -1100,13 +1109,13 @@ class Store {
         let jobProfile = await this._getJobData(web3, keeperAsset, job)
         jobProfile.address = job
 
-        if(callback) {
+        if (callback) {
           callback(null, jobProfile)
         } else {
           return jobProfile
         }
       }, (err, jobsData) => {
-        if(err) {
+        if (err) {
           emitter.emit(SNACKBAR_ERROR, err);
           return emitter.emit(ERROR, GET_JOBS);
         }
@@ -1115,7 +1124,7 @@ class Store {
         emitter.emit(JOBS_RETURNED)
       })
 
-    } catch(ex) {
+    } catch (ex) {
       emitter.emit(SNACKBAR_ERROR, ex)
       return emitter.emit(ERROR, GET_JOBS)
     }
@@ -1124,7 +1133,7 @@ class Store {
   getKeepers = async (payload) => {
     const account = store.getStore('account')
     const web3 = await this._getWeb3Provider()
-    if(!web3) {
+    if (!web3) {
       emitter.emit(KEEPERS_RETURNED)
       return
     }
@@ -1137,7 +1146,7 @@ class Store {
       store.setStore({ keepers: keepers })
 
       emitter.emit(KEEPERS_RETURNED)
-    } catch(ex) {
+    } catch (ex) {
       emitter.emit(SNACKBAR_ERROR, ex)
       return emitter.emit(ERROR, GET_KEEPERS)
     }
@@ -1148,7 +1157,7 @@ class Store {
     const { amount } = payload.content
 
     this._callBond(amount, account, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, ADD_BOND);
       }
@@ -1163,24 +1172,24 @@ class Store {
 
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
-    let amountToSend = (amount*10**keeperAsset.decimals).toFixed(0);
+    let amountToSend = (amount * 10 ** keeperAsset.decimals).toFixed(0);
 
     keeperContract.methods.bond(keeperAsset.address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1188,7 +1197,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1201,7 +1210,7 @@ class Store {
     const { amount } = payload.content
 
     this._callUnbond(amount, account, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, REMOVE_BOND);
       }
@@ -1216,24 +1225,24 @@ class Store {
 
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
-    let amountToSend = (amount*10**keeperAsset.decimals).toFixed(0);
+    let amountToSend = (amount * 10 ** keeperAsset.decimals).toFixed(0);
 
     keeperContract.methods.unbond(keeperAsset.address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1241,7 +1250,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1253,7 +1262,7 @@ class Store {
     const account = store.getStore('account')
 
     this._callActivate(account, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, ACTIVATE_BOND);
       }
@@ -1269,6 +1278,59 @@ class Store {
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
     keeperContract.methods.activate(keeperAsset.address).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
+      .on('transactionHash', function (hash) {
+        emitter.emit(TX_SUBMITTED, hash)
+        callback(null, hash)
+      })
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
+          emitter.emit(TX_CONFIRMED, receipt.transactionHash)
+        }
+      })
+      .on('receipt', function (receipt) {
+        emitter.emit(TX_RECEIPT, receipt.transactionHash)
+      })
+      .on('error', function (error) {
+        if (!error.toString().includes("-32601")) {
+          if (error.message) {
+            return callback(error.message)
+          }
+          callback(error)
+        }
+      })
+      .catch((error) => {
+        if (!error.toString().includes("-32601")) {
+          if (error.message) {
+            return callback(error.message)
+          }
+          callback(error)
+        }
+      })
+  }
+
+  withdrawBond = (payload) => {
+    const account = store.getStore('account')
+    const { amount } = payload.content
+
+    this._callWithdraw(amount, account, (err, res) => {
+      if(err) {
+        emitter.emit(SNACKBAR_ERROR, err);
+        return emitter.emit(ERROR, WITHDRAW_BOND);
+      }
+
+      return emitter.emit(WITHDRAW_BOND_RETURNED, res)
+    })
+  }
+
+  _callWithdraw = async (amount, account, callback) => {
+    const web3 = await this._getWeb3Provider();
+    const keeperAsset = store.getStore('keeperAsset')
+
+    const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
+
+    let amountToSend = (amount*10**keeperAsset.decimals).toFixed(0);
+
+    keeperContract.methods.withdraw(keeperAsset.address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
       .on('transactionHash', function(hash){
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
@@ -1302,7 +1364,7 @@ class Store {
   getKeeperProfile = async (payload) => {
     const keeperAsset = store.getStore('keeperAsset')
     const web3 = await this._getWeb3Provider()
-    if(!web3) {
+    if (!web3) {
       emitter.emit(KEEPER_PROFILE_RETURNED, {})
       return
     }
@@ -1314,7 +1376,7 @@ class Store {
 
       emitter.emit(KEEPER_PROFILE_RETURNED, keeperProfile)
 
-    } catch(ex) {
+    } catch (ex) {
       emitter.emit(SNACKBAR_ERROR, ex)
       return emitter.emit(ERROR, GET_KEEPER_PROFILE)
     }
@@ -1326,15 +1388,15 @@ class Store {
     const { address, addLiquidityAmount, name, docs, ipfs } = payload.content
 
     this._callAddLiquidityToJob(account, address, addLiquidityAmount, async (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, ADD_JOB);
       }
 
       const governanceAddress = await this._getGovernanceAddress()
-      if(governanceAddress.toLowerCase() === account.address.toLowerCase() && (name !== '' || docs !== '' || ipfs !== '')) {
+      if (governanceAddress.toLowerCase() === account.address.toLowerCase() && (name !== '' || docs !== '' || ipfs !== '')) {
         this._callAdd(account, address, name, docs, ipfs, (err, res) => {
-          if(err) {
+          if (err) {
             emitter.emit(SNACKBAR_ERROR, err);
             return emitter.emit(ERROR, ADD_JOB);
           }
@@ -1355,7 +1417,7 @@ class Store {
 
       const address = await jobRegistryContract.methods.governance().call({})
       return address
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       return null
     }
@@ -1367,21 +1429,21 @@ class Store {
     const jobRegistryContract = new web3.eth.Contract(JobRegistryABI, config.jobRegistryAddress)
 
     jobRegistryContract.methods.add(address, name, ipfs, docs).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1389,7 +1451,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1403,24 +1465,24 @@ class Store {
 
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
-    let amountToSend = (amount*10**keeperAsset.decimals).toFixed(0);
+    let amountToSend = (amount * 10 ** keeperAsset.decimals).toFixed(0);
 
     keeperContract.methods.addLiquidityToJob(keeperAsset.address, address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1428,7 +1490,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1439,7 +1501,7 @@ class Store {
   getJobProfile = async (payload) => {
     let keeperAsset = store.getStore('keeperAsset')
     const web3 = await this._getWeb3Provider()
-    if(!web3) {
+    if (!web3) {
       emitter.emit(JOB_PROFILE_RETURNED, {})
       return
     }
@@ -1451,7 +1513,7 @@ class Store {
 
       emitter.emit(JOB_PROFILE_RETURNED, jobProfile)
 
-    } catch(ex) {
+    } catch (ex) {
       emitter.emit(SNACKBAR_ERROR, ex)
       return emitter.emit(ERROR, GET_JOB_PROFILE)
     }
@@ -1462,33 +1524,33 @@ class Store {
       const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
       const jobRegistryContract = new web3.eth.Contract(JobRegistryABI, config.jobRegistryAddress)
 
-      const isJob = await keeperContract.methods.jobs(address).call({ })
-      if(!isJob) {
+      const isJob = await keeperContract.methods.jobs(address).call({})
+      if (!isJob) {
         return {
           isJob: false
         }
       }
 
-      let jobProfile = await jobRegistryContract.methods.jobData(address).call({ })
-      if(!jobProfile) {
+      let jobProfile = await jobRegistryContract.methods.jobData(address).call({})
+      if (!jobProfile) {
         jobProfile = {}
       }
 
-      const jobAdded = await jobRegistryContract.methods.jobAdded(address).call({ })
+      const jobAdded = await jobRegistryContract.methods.jobAdded(address).call({})
       jobProfile.jobAdded = jobAdded
 
-      let credits = await keeperContract.methods.credits(address, keeperAsset.address).call({ })
-      credits = credits/10**keeperAsset.decimals
+      let credits = await keeperContract.methods.credits(address, keeperAsset.address).call({})
+      credits = credits / 10 ** keeperAsset.decimals
 
       jobProfile.credits = credits
       jobProfile.isJob = isJob
 
-      if(jobProfile._docs) {
+      if (jobProfile._docs) {
         jobProfile.fileContent = await this._getGithubFile(jobProfile._docs, address)
       }
 
       return jobProfile
-    } catch(ex) {
+    } catch (ex) {
       console.log(ex)
       return {
         credits: 0
@@ -1497,7 +1559,7 @@ class Store {
   }
 
   _getGithubFile = async (documentation, address) => {
-    if(documentation && documentation.includes('https://github.com')) {
+    if (documentation && documentation.includes('https://github.com')) {
       try {
 
         const documentationPieces = documentation.split('/')
@@ -1511,12 +1573,12 @@ class Store {
         const url = `${config.githubAPI}${user}/${repository}/${branch}/${file}`
 
         const rawCode = await rp(url);
-        if(rawCode) {
+        if (rawCode) {
           return rawCode
         }
-      } catch(e) {
+      } catch (e) {
         console.log(e)
-          return null
+        return null
       }
     } else if (documentation && documentation.includes('https://etherscan.io/')) {
       try {
@@ -1524,17 +1586,17 @@ class Store {
         const url = `${config.etherscanAPI}?module=contract&action=getsourcecode&address=${address}&apikey=${config.etherscanAPIKey}`
 
         const rawCode = await rp(url);
-        if(rawCode) {
+        if (rawCode) {
           const jsonCode = JSON.parse(rawCode)
-          if(jsonCode.result && jsonCode.result.length > 0) {
+          if (jsonCode.result && jsonCode.result.length > 0) {
             return jsonCode.result[0].SourceCode
           } else {
             return jsonCode
           }
         }
-      } catch(e) {
+      } catch (e) {
         console.log(e)
-          return null
+        return null
       }
     } else {
       return null
@@ -1549,7 +1611,7 @@ class Store {
     const { address, addLiquidityAmount } = payload.content
 
     this._callAddLiquidityToJob(account, address, addLiquidityAmount, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, ADD_LIQUIDITY_TO_JOB);
       }
@@ -1564,7 +1626,7 @@ class Store {
     const { address } = payload.content
 
     this._callApplyCreditToJob(account, address, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, APPLY_CREDIT_TO_JOB);
       }
@@ -1580,21 +1642,21 @@ class Store {
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
     keeperContract.methods.applyCreditToJob(account.address, keeperAsset.address, address).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1602,7 +1664,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1610,14 +1672,13 @@ class Store {
       })
   }
 
-
   unbondLiquidityFromJob = async (payload) => {
     const account = store.getStore('account')
 
     const { address, removeLiquidityAmount } = payload.content
 
     this._callUnbondLiquidityFromJob(account, address, removeLiquidityAmount, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, UNBOND_LIQUIDITY_FROM_JOB);
       }
@@ -1632,24 +1693,24 @@ class Store {
 
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
-    let amountToSend = (amount*10**keeperAsset.decimals).toFixed(0);
+    let amountToSend = (amount * 10 ** keeperAsset.decimals).toFixed(0);
 
     keeperContract.methods.unbondLiquidityFromJob(keeperAsset.address, address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1657,7 +1718,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1671,7 +1732,7 @@ class Store {
     const { address } = payload.content
 
     this._callRemoveLiquidityFromJob(account, address, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, REMOVE_LIQUIDITY_FROM_JOB);
       }
@@ -1687,21 +1748,21 @@ class Store {
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
     keeperContract.methods.removeLiquidityFromJob(keeperAsset.address, address).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1709,7 +1770,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1723,7 +1784,7 @@ class Store {
     const { address } = payload.content
 
     this._callDown(account, address, (err, res) => {
-      if(err) {
+      if (err) {
         emitter.emit(SNACKBAR_ERROR, err);
         return emitter.emit(ERROR, SLASH);
       }
@@ -1738,21 +1799,21 @@ class Store {
     const keeperContract = new web3.eth.Contract(KeeperABI, config.keeperAddress)
 
     keeperContract.methods.down(address).send({ from: account.address, gasPrice: web3.utils.toWei(await this._getGasPrice(), 'gwei') })
-      .on('transactionHash', function(hash){
+      .on('transactionHash', function (hash) {
         emitter.emit(TX_SUBMITTED, hash)
         callback(null, hash)
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        if(confirmationNumber === 2) {
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
           emitter.emit(TX_CONFIRMED, receipt.transactionHash)
         }
       })
-      .on('receipt', function(receipt){
+      .on('receipt', function (receipt) {
         emitter.emit(TX_RECEIPT, receipt.transactionHash)
       })
-      .on('error', function(error) {
+      .on('error', function (error) {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)
@@ -1760,7 +1821,7 @@ class Store {
       })
       .catch((error) => {
         if (!error.toString().includes("-32601")) {
-          if(error.message) {
+          if (error.message) {
             return callback(error.message)
           }
           callback(error)

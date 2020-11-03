@@ -263,13 +263,14 @@ class Vote extends Component {
           </div>
           <div className={ classes.topButton }>
             <Button
-              className={ classes.stakeButton }
-              variant="outlined"
-              color="secondary"
+              // className={ classes.stakeButton }
+              variant='contained'
+              color="primary"
               disabled={ loading }
               onClick={ () => { this.onPropose() } }
             >
-              <Typography variant={ 'h4'}>New proposal</Typography>
+              {/* <Typography variant={ 'h4'}>New proposal</Typography> */}
+              New proposal
             </Button>
           </div>
         </div>

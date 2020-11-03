@@ -143,7 +143,7 @@ class Propose extends Component {
           <div className={ classes.topButton }>
             <Button
               className={ classes.stakeButton }
-              variant="outlined"
+              variant="contained"
               color="secondary"
               disabled={ loading }
               onClick={ () => {  this.props.history.push('/governance') } }

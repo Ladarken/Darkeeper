@@ -352,7 +352,7 @@ class Job extends Component {
         <div className={ classes.intro }>
           <div className={ classes.topButton }>
             <Button
-              variant="outlined"
+              variant="contained"
               color="secondary"
               disabled={ loading }
               onClick={ () => {  this.props.history.push('/keep3r') } }

@@ -292,11 +292,11 @@ class Header extends Component {
           <div className={ classes.icon }>
             <img
               alt=""
-              src={ require('../../assets/logo.svg') }
+              src={ require('../../assets/logo.png') }
               height={ '37px' }
               onClick={ () => { this.nav('') } }
             />
-            <Typography variant={ 'h3'} className={ classes.name } onClick={ () => { this.nav('') } }>keep3r.network</Typography>
+            <Typography variant={ 'h3'} className={ classes.name } onClick={ () => { this.nav('') } }>Dark.Agent</Typography>
           </div>
           <div className={ classes.links }>
             { this.renderLink('keep3r') }

@@ -17,7 +17,7 @@ const WorkSans = {
 };
 
 export const colors = {
-  white: "#fff",
+  white: "#444",
   black: '#000',
   darkBlue: "#2c3b57",
   blue: "#2F80ED",
@@ -33,11 +33,15 @@ export const colors = {
   tomato: '#e56b73',
   purple: '#935dff',
 
-  text: "#212529",
+  // text: "#212529",
+  text: "#eee",
   lightBlue: "#2F80ED",
-  topaz: "#0b8f92",
-  darkGray: "rgba(43,57,84,.5)",
-  borderBlue: 'rgba(25, 101, 233, 0.5)',
+  // topaz: "#0b8f92",
+  topaz: "#2F80ED",
+  // darkGray: "rgba(43,57,84,.5)",
+  // borderBlue: 'rgba(25, 101, 233, 0.5)',
+  darkGray: "#eee",
+  borderBlue: '#eee',
 
 
   progressRed: '#DF5F67',

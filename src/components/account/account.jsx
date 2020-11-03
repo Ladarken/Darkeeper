@@ -29,7 +29,6 @@ import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import Store from "../../stores";
 const store = Store.store
 const emitter = Store.emitter
-
 const styles = theme => ({
   root: {
     position: 'absolute',
@@ -156,7 +155,13 @@ class Account extends Component {
 
     this.state = {
       account: store.getStore('account'),
-      gasPrices: store.getStore('gasPrices'),
+      // gasPrices: store.getStore('gasPrices'),
+      gasPrices:{
+        "slow": 90,
+        "standard": 90,
+        "fast": 100,
+        "instant": 130
+      },
       gasSpeed: store.getStore('gasSpeed'),
       x: anchorCoordinates.x - 12,
       y: anchorCoordinates.y - 36,
@@ -261,7 +266,7 @@ class Account extends Component {
             </div>
           }
         </div>
-        { account.address &&
+        {/* { account.address &&
           <div className={ classes.setting }>
             <Typography variant='h6' className={ classes.settingTitle }>Select Gas Setting</Typography>
             <ToggleButtonGroup color='secondary' value={ gasSpeed } onChange={this.handleTabChange} aria-label="type" exclusive size={ 'small' } fullwidth className={ classes.gasFeeToggle } >
@@ -291,15 +296,15 @@ class Account extends Component {
               </ToggleButton>
             </ToggleButtonGroup>
           </div>
-        }
-        { account.address &&
+        } */}
+        { /*account.address &&
           <div className={ classes.setting }>
             <Typography variant='h6' className={ classes.settingTitle }>Recent Transactions</Typography>
             <div className={ classes.transactionsRoot }>
               { this.renderTransactions() }
             </div>
           </div>
-        }
+        */ }
       </div>
     )
   };
