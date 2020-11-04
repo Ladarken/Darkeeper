@@ -147,7 +147,7 @@ class Store {
       keeperAsset: {
         address: config.keeperAddress,
         abi: KeeperABI,
-        symbol: 'ADARK',
+        symbol: 'aDARK',
         name: 'Keep3r',
         decimals: 18,
         balance: 0,
@@ -165,7 +165,7 @@ class Store {
         work: 0,
         workCompleted: 0,
         isActive: false,
-        voteSymbol: 'ADARK Bonded',
+        voteSymbol: 'aDARK Bonded',
         currentVotes: 0
       },
       jobs: [
