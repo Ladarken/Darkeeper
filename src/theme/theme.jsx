@@ -17,7 +17,7 @@ const WorkSans = {
 };
 
 export const colors = {
-  white: "#444",
+  white: "radial-gradient(50% 50% at 50% 50%,#153d6f70 0%,rgba(55,107,173,0) 100%)",
   black: '#000',
   darkBlue: "#2c3b57",
   blue: "#2F80ED",

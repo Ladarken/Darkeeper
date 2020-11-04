@@ -31,7 +31,7 @@ const styles = theme => ({
     background: colors.white,
     marginTop: '48px',
     flexWrap: 'wrap',
-    borderTop: '1px solid '+colors.borderBlue,
+    borderTop: '1px solid ' + colors.borderBlue,
     [theme.breakpoints.down('xs')]: {
       justifyContent: 'flex-start',
       flexDirection: 'column'
@@ -40,7 +40,7 @@ const styles = theme => ({
   heading: {
     marginBottom: '12px',
     paddingBottom: '9px',
-    borderBottom: "3px solid "+colors.borderBlue,
+    borderBottom: "3px solid " + colors.borderBlue,
     width: 'fit-content',
     marginLeft: '30px'
   },
@@ -62,7 +62,7 @@ const styles = theme => ({
     display: 'flex',
     alignItems: 'center'
   },
-  builtWith:{
+  builtWith: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -76,7 +76,7 @@ const styles = theme => ({
   builtHeading: {
     marginBottom: '12px',
     paddingBottom: '9px',
-    borderBottom: "3px solid "+colors.borderBlue,
+    borderBottom: "3px solid " + colors.borderBlue,
     width: 'fit-content',
   },
   products: {
@@ -109,25 +109,25 @@ class Footer extends Component {
     return (
       <div className={classes.footer}>
 
-        <div className={ classes.products }>
-          <Typography className={ classes.heading } variant={ 'h6'}>Documentation</Typography>
-          <div  className={ classes.link } onClick={()=> window.open("https://docs.keep3r.network/", "_blank")} >
-            <DescriptionIcon height='15px' className={ classes.icon } />
-            <Typography variant={ 'h4'} >docs.keep3r.network</Typography>
+        <div className={classes.products}>
+          <Typography className={classes.heading} variant={'h6'}>Discord</Typography>
+          <div className={classes.link} onClick={() => window.open("https://discord.com/invite/GS3c5D8", "_blank")} >
+            <img alt="" src={require('../../assets/discord.svg')} height='24px' className={classes.icon} />
+            <Typography variant={'h4'} >DARK-Discord</Typography>
           </div>
         </div>
-        <div className={ classes.products }>
-          <Typography className={ classes.heading } variant={ 'h6'}>Github</Typography>
-          <div  className={ classes.link } onClick={()=> window.open("https://github.com/keep3r-network", "_blank")} >
-            <img alt="" src={ require('../../assets/github.svg') } height='24px' className={ classes.icon } />
-            <Typography variant={ 'h4'} >keep3r-network</Typography>
+        <div className={classes.products}>
+          <Typography className={classes.heading} variant={'h6'}>Github</Typography>
+          <div className={classes.link} onClick={() => window.open("https://github.com/Ladarken", "_blank")} >
+            <img alt="" src={require('../../assets/github.svg')} height='24px' className={classes.icon} />
+            <Typography variant={'h4'} >Ladarken</Typography>
           </div>
         </div>
-        <div className={ classes.products }>
-          <Typography className={ classes.heading } variant={ 'h6'}>Registry</Typography>
-          <div  className={ classes.link } onClick={()=> window.open("https://docs.keep3r.network/registry", "_blank")} >
-            <DescriptionIcon height='15px' className={ classes.icon } />
-            <Typography variant={ 'h4'} >registry</Typography>
+        <div className={classes.products}>
+          <Typography className={classes.heading} variant={'h6'}>Etherscan</Typography>
+          <div className={classes.link} onClick={() => window.open("https://etherscan.io/token/0x3108ccFd96816F9E663baA0E8c5951D229E8C6da", "_blank")} >
+            <img alt="" src={require('../../assets/etherscan1.png')} height='24px' className={classes.icon} />
+            <Typography variant={'h4'} >Etherscan-DARK</Typography>
           </div>
         </div>
       </div>

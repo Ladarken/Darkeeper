@@ -240,7 +240,7 @@ class Job extends Component {
     let jobAddress = (props && props.match && props.match.params && props.match.params.address) ? props.match.params.address : null
 
     if(!jobAddress) {
-      props.history.push('/keep3r/')
+      props.history.push('/Agent/')
     }
 
     dispatcher.dispatch({ type: GET_JOB_PROFILE, content: { address: jobAddress } })
@@ -355,7 +355,7 @@ class Job extends Component {
               variant="contained"
               color="secondary"
               disabled={ loading }
-              onClick={ () => {  this.props.history.push('/keep3r') } }
+              onClick={ () => {  this.props.history.push('/Agent') } }
             >
               <Typography variant={ 'h4'}>Back</Typography>
             </Button>
@@ -613,7 +613,7 @@ class Job extends Component {
   }
 
   onAddJob = () => {
-    this.props.history.push('/keep3r/job')
+    this.props.history.push('/Agent/job/')
   }
 
   onAddLiquidity = () => {

@@ -154,7 +154,7 @@ class Keeper extends Component {
     let keeperAddress = (props && props.match && props.match.params && props.match.params.address) ? props.match.params.address : null
 
     if(!keeperAddress) {
-      props.history.push('/keep3r/')
+      props.history.push('/Agent/')
     }
 
     emitter.emit(START_LOADING, GET_KEEPER_PROFILE)
@@ -186,7 +186,7 @@ class Keeper extends Component {
     let keeperAddress = (props && props.match && props.match.params && props.match.params.address) ? props.match.params.address : null
 
     if(!keeperAddress) {
-      props.history.push('/keep3r/')
+      props.history.push('/Agent/')
     }
 
     emitter.emit(START_LOADING, GET_KEEPER_PROFILE)
@@ -252,7 +252,7 @@ class Keeper extends Component {
               variant="contained"
               color="secondary"
               disabled={ loading }
-              onClick={ () => {  this.props.history.push('/keep3r') } }
+              onClick={ () => {  this.props.history.push('/Agent') } }
             >
               <Typography variant={ 'h4'}>Back</Typography>
             </Button>

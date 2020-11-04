@@ -848,7 +848,7 @@ class Keeper extends Component {
     }
 
     if(!error) {
-      this.props.history.push('/keep3r/'+searchKeeper)
+      this.props.history.push('/Agent/'+searchKeeper)
     }
   }
 
@@ -929,11 +929,11 @@ class Keeper extends Component {
   }
 
   onAddJob = () => {
-    this.props.history.push('/keep3r/job')
+    this.props.history.push('/Agent/job/')
   }
 
   navJob = (address) => {
-    this.props.history.push('/keep3r/job/'+address)
+    this.props.history.push('/Agent/job//'+address)
   }
 }
 

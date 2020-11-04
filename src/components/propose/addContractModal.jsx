@@ -20,7 +20,7 @@ const styles = theme => ({
     flexWrap: 'wrap',
     padding: '28px 30px',
     borderRadius: '50px',
-    background: colors.white,
+    background: '#333',
   },
   field: {
     minWidth: '100%',
@@ -31,6 +31,13 @@ const styles = theme => ({
   },
   titleInput: {
     borderRadius: '25px'
+  },
+  Dialog:{
+    border:'0px solid #333'
+  },
+  DialogContent:{
+    background:'#333',
+    border:'0px solid #333'
   }
 })
 
@@ -63,8 +70,8 @@ class AddContractModal extends Component {
     const fullScreen = window.innerWidth < 450;
 
     return (
-      <Dialog open={ modalOpen } onClose={ onClose } fullWidth={ true } maxWidth={ 'sm' } TransitionComponent={ Transition } fullScreen={ fullScreen }>
-        <DialogContent>
+      <Dialog className={ classes.Dialog } open={ modalOpen } onClose={ onClose } fullWidth={ true } maxWidth={ 'sm' } TransitionComponent={ Transition } fullScreen={ fullScreen }>
+        <DialogContent className={ classes.DialogContent }>
           <div className={ classes.proposalContainer }>
             <div className={ classes.field }>
               <div className={ classes.fieldTitle }>

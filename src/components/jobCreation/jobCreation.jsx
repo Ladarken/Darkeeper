@@ -190,7 +190,7 @@ class JobCreation extends Component {
               variant="outlined"
               color="secondary"
               disabled={ loading }
-              onClick={ () => {  this.props.history.push('/keep3r') } }
+              onClick={ () => {  this.props.history.push('/Agent') } }
             >
               <Typography variant={ 'h4'}>Back</Typography>
             </Button>
